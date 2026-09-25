@@ -35,7 +35,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite")
 
 # ── Proveedor Local Ollama (qwen2.5vl:3b) ───────────────────────────────────
-IA_PROVIDER = os.getenv("IA_PROVIDER", "ollama").strip().lower()
+IA_PROVIDER = os.getenv("IA_PROVIDER", "groq").strip().lower()
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434").rstrip("/")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5vl:3b")
 
