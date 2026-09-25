@@ -231,7 +231,7 @@ def chat_con_documento(payload: ChatRequest):
         img_id = c.get("imagen_id")
 
         if tipo == "imagen":
-            bloques_contexto.append(f"[Página {pagina} - Descripción de Imagen ({img_id})]:\n{contenido}")
+            bloques_contexto.append(f"[Página {pagina} - Contenido visual y encabezado ({img_id})]:\n{contenido}")
             clave_fuente = (tipo, pagina, img_id)
             if clave_fuente not in fuentes_map:
                 fuentes_map[clave_fuente] = FuenteItem(
@@ -241,7 +241,7 @@ def chat_con_documento(payload: ChatRequest):
                     imagen_url=f"/api/imagenes/{str(payload.doc_id)}/{img_id}"
                 )
         else:
-            bloques_contexto.append(f"[Página {pagina} - Fragmento de Texto]:\n{contenido}")
+            bloques_contexto.append(f"[Página {pagina} - Contenido textual de la página]:\n{contenido}")
             clave_fuente = (tipo, pagina, None)
             if clave_fuente not in fuentes_map:
                 fuentes_map[clave_fuente] = FuenteItem(

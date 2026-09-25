@@ -103,11 +103,11 @@ def extract_pdf_content(pdf_path: Path, output_images_dir: Path) -> Dict[str, An
         if len(clean_text) < 50:
             es_pagina_escaneada = True
             try:
-                # Renderizar página completa a 150 DPI (calidad óptima para OCR de documentos y fotos con fuentes pequeñas)
-                pix = page.get_pixmap(dpi=150)
+                # Renderizar página completa a 220 DPI (calidad ultra-nítida para OCR de documentos, recibos y fuentes pequeñas)
+                pix = page.get_pixmap(dpi=220)
                 scanned_filename = f"p{page_num}_escaneada.jpg"
                 scanned_path = output_images_dir / scanned_filename
-                pix.save(str(scanned_path))
+                pix.pil_save(str(scanned_path), format="JPEG", quality=94)
 
                 scanned_pages.append({
                     "imagen_id": scanned_filename,
@@ -158,7 +158,7 @@ def extract_pdf_content(pdf_path: Path, output_images_dir: Path) -> Dict[str, An
 
                 filename = f"p{page_num}_{img_counter_page}.jpg"
                 save_path = output_images_dir / filename
-                img.save(save_path, format="JPEG", quality=85)
+                img.save(save_path, format="JPEG", quality=94)
 
                 extracted_images.append({
                     "imagen_id": filename,

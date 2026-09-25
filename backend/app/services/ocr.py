@@ -90,12 +90,10 @@ def extraer_texto_tesseract(image_path: Path, max_dim: int = 1800) -> str:
     Pasos:
       1. Abrir imagen con PIL, convertir a escala de grises y aplicar autocontraste
          (mejora drásticamente la lectura de fotos tomadas con celular y recibos).
-      2. Redimensionar si el lado mayor supera max_dim (BILINEAR).
+      2. Redimensionar preservando el ancho legible (en tiras continuas de tickets,
+         alto >> ancho, nunca se reduce por la altura para no aplastar los caracteres).
       3. Llamar a pytesseract.image_to_string con --psm 3 (página completa, auto).
       4. Capturar TesseractError y devolver "" si falla.
-
-    Nota: pytesseract invoca el binario como subproceso y libera el GIL, por lo
-    que ES seguro llamar esta función desde varios hilos simultáneamente.
     """
     try:
         import pytesseract  # type: ignore
@@ -110,13 +108,24 @@ def extraer_texto_tesseract(image_path: Path, max_dim: int = 1800) -> str:
             img = img.convert("L")
             img = ImageOps.autocontrast(img)
             ancho, alto = img.size
-            lado_largo = max(ancho, alto)
-            if lado_largo > max_dim:
+
+            # En tiras largas de tickets/recibos (alto >> ancho), nunca reducir
+            # basándonos en la altura, porque reduciría el ancho a niveles ilegibles.
+            if ancho > 2400:
+                factor = 2400 / ancho
+                img = img.resize(
+                    (int(ancho * factor), int(alto * factor)),
+                    Image.Resampling.LANCZOS,
+                )
+            elif max(ancho, alto) > max_dim and ancho < 2000 and alto <= max_dim * 1.5:
+                # Documentos de proporción estándar A4/carta
+                lado_largo = max(ancho, alto)
                 factor = max_dim / lado_largo
                 img = img.resize(
                     (max(1, int(ancho * factor)), max(1, int(alto * factor))),
-                    Image.Resampling.BILINEAR,
+                    Image.Resampling.LANCZOS,
                 )
+
             texto = pytesseract.image_to_string(
                 img,
                 lang=OCR_LANG,
@@ -196,6 +205,38 @@ def extraer_texto_rapid(image_path: Path, max_dim: int = 1800) -> str:
         return ""
 
 
+def extraer_encabezado_logo_ocr(image_path: Path) -> list:
+    """
+    Extrae con RapidOCR el encabezado superior (12% inicial de la página),
+    donde se ubican logotipos, marcas comerciales y nombres de entidades
+    (como 'Previsalud Semedical') que suelen usar fuentes estilizadas o matriz de puntos
+    que Tesseract sobre toda la página puede omitir.
+    """
+    try:
+        import cv2
+        img_cv = cv2.imread(str(image_path))
+        if img_cv is None:
+            return []
+        h, w = img_cv.shape[:2]
+        header_cv = img_cv[0:int(h * 0.12), 0:w]
+        engine, _ = get_rapid_engine()
+        if engine is None:
+            return []
+        with _rapid_lock:
+            res, _ = engine(header_cv)
+        if not res:
+            return []
+        lineas = []
+        for item in res:
+            texto = item[1].strip()
+            if len(texto) >= 3:
+                lineas.append(texto)
+        return lineas
+    except Exception as e:
+        logger.debug(f"[OCR] Aviso al extraer encabezado con RapidOCR: {e}")
+        return []
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Precarga legacy (compatibilidad con main.py → precargar_ocr)
 # ──────────────────────────────────────────────────────────────────────────────
@@ -218,10 +259,11 @@ def extraer_texto_ocr(image_path: Path, max_dim: int = 1800) -> str:
     """
     Extrae texto de una imagen usando el mejor motor OCR disponible.
 
-    Estrategia de fallback:
-      1. Tesseract (pytesseract) — rápido, hilo-seguro, ~1-2 s/pág.
-      2. RapidOCR (ONNX)        — preciso pero lento (~6 s/pág), fallback si
-                                   Tesseract no está instalado o devuelve vacío.
+    Estrategia híbrida:
+      1. Tesseract (pytesseract) — rápido, hilo-seguro, transcribe el cuerpo de la página.
+      2. RapidOCR (ONNX)        — inspecciona el encabezado/logo (primer 12%) para capturar
+                                   marcas estilizadas (ej. 'Previsalud Semedical').
+      3. Fallback total         — si Tesseract no está disponible o falla, RapidOCR procesa todo.
 
     Parámetros:
         image_path : ruta al archivo de imagen (JPEG / PNG).
@@ -236,16 +278,30 @@ def extraer_texto_ocr(image_path: Path, max_dim: int = 1800) -> str:
     if _tesseract_disponible is None:
         _tesseract_disponible = get_tesseract_engine()
 
-    # ── Intento 1: Tesseract ─────────────────────────────────────────────────
+    texto = ""
+    # ── Intento 1: Tesseract para el cuerpo completo ────────────────────────
     if _tesseract_disponible:
         texto = extraer_texto_tesseract(image_path, max_dim=max_dim)
-        if texto:
-            return texto
-        # Tesseract devolvió vacío → fallback a RapidOCR
-        logger.debug(
-            f"[OCR] Tesseract devolvió vacío para {image_path.name}; "
-            "intentando RapidOCR."
-        )
+        if not texto:
+            logger.debug(
+                f"[OCR] Tesseract devolvió vacío para {image_path.name}; "
+                "intentando RapidOCR."
+            )
+            texto = extraer_texto_rapid(image_path, max_dim=max_dim)
+    else:
+        # ── Intento 2: RapidOCR (fallback si no hay Tesseract) ─────────────────
+        texto = extraer_texto_rapid(image_path, max_dim=max_dim)
 
-    # ── Intento 2: RapidOCR (fallback) ──────────────────────────────────────
-    return extraer_texto_rapid(image_path, max_dim=max_dim)
+    # ── Enriquecimiento de encabezado/logotipo con RapidOCR ─────────────────
+    try:
+        lineas_header = extraer_encabezado_logo_ocr(image_path)
+        if lineas_header:
+            texto_inicio = (texto[:500] if texto else "").lower()
+            faltantes = [l for l in lineas_header if l.lower() not in texto_inicio]
+            if faltantes:
+                header_extra = "\n".join(faltantes)
+                texto = f"{header_extra}\n\n{texto}".strip() if texto else header_extra
+    except Exception as e:
+        logger.debug(f"[OCR] Error menor en enriquecimiento de encabezado: {e}")
+
+    return texto.strip()
