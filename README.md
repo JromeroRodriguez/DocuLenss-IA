@@ -1,4 +1,4 @@
-# 🔍 DocuLens AI — Workspace Conversacional Multimodal para Documentos y Firmas
+# DocuLens AI — Workspace Conversacional Multimodal para Documentos y Firmas
 
 **DocuLens AI** es una aplicación web full-stack que transforma la interacción con documentos PDF, fotos de facturas, recetas médicas y cédulas en una **experiencia de espacio de trabajo visual con chat integrado (Dual Panel / Split View)**. Combina modelos de lenguaje multimodal, visión por computador, OCR local híbrido y búsqueda semántica vectorial sobre PostgreSQL con `pgvector`.
 
@@ -6,7 +6,7 @@ No solo extrae y busca texto: **comprende diagramas, esquemas, gráficos y tabla
 
 ---
 
-## 🚀 Características Principales
+## Características Principales
 
 1. **Interfaz de Chat Conversacional Centralizada (React 19 + Tailwind CSS v4)**:
    - Experiencia de conversación fluida con input expansible, drag & drop a pantalla completa y renderizado Markdown.
@@ -39,7 +39,7 @@ No solo extrae y busca texto: **comprende diagramas, esquemas, gráficos y tabla
 
 ---
 
-## 🛠️ Stack Tecnológico
+## Stack Tecnológico
 
 | Capa | Tecnología |
 |---|---|
@@ -54,7 +54,7 @@ No solo extrae y busca texto: **comprende diagramas, esquemas, gráficos y tabla
 
 ---
 
-## 📁 Estructura del Proyecto
+## Estructura del Proyecto
 
 ```text
 .
@@ -112,7 +112,7 @@ No solo extrae y busca texto: **comprende diagramas, esquemas, gráficos y tabla
 
 ---
 
-## ⚡ Instalación y Puesta en Marcha
+## Instalación y Puesta en Marcha
 
 ### 1. Prerrequisitos
 - **Docker y Docker Compose** activos.
@@ -193,7 +193,7 @@ Abre tu navegador en:
 
 ---
 
-## 🧪 Ejecución de Pruebas Automatizadas
+## Ejecución de Pruebas Automatizadas
 
 El backend incluye una suite completa de pruebas unitarias, de integración y de seguridad que no consumen cuota de APIs externas:
 
@@ -210,7 +210,7 @@ pytest backend/tests/test_rag_pipeline.py -v
 
 ---
 
-## 📡 Referencia de la API REST
+## Referencia de la API REST
 
 | Método | Endpoint | Descripción |
 |---|---|---|
@@ -227,7 +227,7 @@ pytest backend/tests/test_rag_pipeline.py -v
 
 ---
 
-## 🔒 Consideraciones de Seguridad Implementadas
+## Consideraciones de Seguridad Implementadas
 
 1. **Path Traversal:** Toda lectura o entrega de archivos utiliza `validar_ruta_segura()` verificando que la ruta canónica pertenezca a `STORAGE_DIR` mediante `.relative_to()`.
 2. **Validación de Archivos:** Se valida la cabecera binaria `%PDF-` antes de guardar cualquier archivo en disco.
