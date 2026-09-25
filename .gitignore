@@ -1,0 +1,39 @@
+# Python y entornos
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+
+# Variables de entorno
+.env
+backend/.env
+
+# Almacenamiento local de PDFs e imágenes extraídas
+backend/storage/
+storage/
+
+# Node y Frontend
+frontend/node_modules/
+frontend/dist/
+node_modules/
+dist/
+dist-ssr/
+*.local
+*.zip
+
+# Datos de Postgres (Docker)
+pgdata/
+
+# Artefactos locales
+.ollama/
+scratch/
+
+# IDE y sistema
+.vscode/
+.idea/
+*.swp
+.DS_Store
